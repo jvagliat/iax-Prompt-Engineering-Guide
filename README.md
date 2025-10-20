@@ -132,6 +132,43 @@ To run the guide locally, for example to check the correct implementation of a n
 1. Boot the guide with `pnpm dev`
 2. Browse the guide at `http://localhost:3000/`
 
+### Index the English content into Pinecone
+
+To power a RAG chatbot with the English content of the guide, you can index the
+MDX sources directly into Pinecone using the helper script in this repository.
+
+1. Install the Python dependencies (a virtual environment is recommended):
+
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r scripts/requirements-indexing.txt
+   ```
+
+2. Export the required environment variables (the script will create the index
+   automatically if it does not exist):
+
+   ```bash
+   export OPENAI_API_KEY=sk-...
+   export PINECONE_API_KEY=...
+   export PINECONE_INDEX=prompt-engineering-guide
+   # Optional overrides:
+   # export PINECONE_NAMESPACE=my-namespace
+   # export PINECONE_REGION=us-east-1
+   # export OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+   ```
+
+3. Run the ingestion script:
+
+   ```bash
+   python scripts/index_english_content.py
+   ```
+
+The script walks the `pages/` directory, generates Markdown-aware chunks for
+every `*.en.mdx` file, and uploads them to Pinecone alongside helpful metadata
+such as breadcrumbs, locale, and original slug. Once complete, your chatbot can
+query the index immediately.
+
 ---
 ## Appearances
 Some places where we have been featured:
