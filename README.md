@@ -132,6 +132,63 @@ To run the guide locally, for example to check the correct implementation of a n
 1. Boot the guide with `pnpm dev`
 2. Browse the guide at `http://localhost:3000/`
 
+### Index the English content into Pinecone
+
+To power a RAG chatbot with the English content of the guide, you can index the
+MDX sources directly into Pinecone using the helper script in this repository.
+
+1. Install the Python dependencies (a virtual environment is recommended):
+
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r scripts/requirements-indexing.txt
+   ```
+
+2. Export the required environment variables (the script will create the index
+   automatically if it does not exist):
+
+   ```bash
+   export OPENAI_API_KEY=sk-...
+   export PINECONE_API_KEY=...
+   export PINECONE_INDEX=prompt-engineering-guide
+   # Optional overrides:
+   # export PINECONE_NAMESPACE=my-namespace
+   # export PINECONE_REGION=us-east-1
+   # export OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+   ```
+
+3. Run the ingestion script (defaults to a full refresh of the English corpus):
+
+   ```bash
+   python scripts/index_english_content.py
+   ```
+
+   The CLI exposes additional lifecycle operations:
+
+   ```bash
+   # Delete a single document
+   python scripts/index_english_content.py delete-doc introduction/index.en.mdx
+
+   # Replace a subset of documents after editing them locally
+   python scripts/index_english_content.py upsert-doc introduction/index.en.mdx techniques/cot.en.mdx
+
+   # Remove everything under a topic (folder) and prepare for re-ingestion
+   python scripts/index_english_content.py delete-topic techniques
+
+   # Run a dry-run (no writes) with evaluation queries to smoke-test retrieval quality
+   python scripts/index_english_content.py --dry-run --evaluation-queries "what is chain-of-thought?" "how to design prompts"
+   ```
+
+The script now orchestrates a modular pipeline composed of:
+
+- `MDXCollector` – traverses the MDX tree, normalises metadata, and emits `RawDocument` objects.
+- `MarkdownChunker` – produces breadcrumb-aware chunks using LangChain's `MarkdownTextSplitter`.
+- `HybridIndexer` – pushes chunks into Pinecone (semantic embeddings) and an in-memory lexical index, enabling hybrid retrieval and targeted deletes.
+- `IngestionOrchestrator` – coordinates the pipeline, supports dry runs, and routes optional evaluation hooks (future-proofed for frameworks such as RAGAS).
+
+This modularity makes it straightforward to plug in alternative vector stores (e.g., Qdrant, Elastic/OpenSearch) or swap embedding models without rewriting the pipeline.
+
 ---
 ## Appearances
 Some places where we have been featured:
